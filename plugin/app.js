@@ -14,11 +14,16 @@ const DEFAULT_SOCK = process.env.HERDR_SOCKET_PATH ||
 const $UD = new UlanziApi();
 const buttons = {}; // context -> { op | index, session }
 
-// serialize herdr operations: knob spins and rapid presses run in order, never interleaved
-let chain = Promise.resolve();
-function enqueue(fn) {
-  chain = chain.catch(() => {}).then(fn);
-  return chain;
+// serialize herdr operations per session: knob spins and rapid presses run in order,
+// and a dead remote session's timeouts never stall the local page
+const chains = {};
+const pendingOps = {};
+function enqueue(sess, fn) {
+  const key = sess || "local";
+  pendingOps[key] = (pendingOps[key] || 0) + 1;
+  const run = async () => { try { await fn(); } finally { pendingOps[key]--; } };
+  chains[key] = (chains[key] || Promise.resolve()).catch(() => {}).then(run);
+  return chains[key];
 }
 
 // ---------------- sessions ----------------
@@ -28,18 +33,18 @@ function enqueue(fn) {
 const SESSIONS_PATH = path.join(PLUGIN_DIR, "sessions.json");
 let SESSIONS = { local: { sock: DEFAULT_SOCK } };
 function loadSessions() {
+  let cfg;
+  try { cfg = JSON.parse(fs.readFileSync(SESSIONS_PATH, "utf8")); }
+  catch { return; } // keep the last-good config: a half-written file must not collapse sessions to local
   const next = { local: { sock: DEFAULT_SOCK } };
-  try {
-    const cfg = JSON.parse(fs.readFileSync(SESSIONS_PATH, "utf8"));
-    for (const [name, c] of Object.entries(cfg.sessions || {})) {
-      if (!c.host || name === "local") continue;
-      next[name] = {
-        host: c.host,
-        remoteSock: c.remote_sock || "/home/" + (c.user || "dylan") + "/.config/herdr/herdr.sock", // ssh -L needs an ABSOLUTE remote path
-        sock: path.join(os.homedir(), ".config", "herdr", `deck-${name}.sock`),
-      };
-    }
-  } catch {}
+  for (const [name, c] of Object.entries(cfg.sessions || {})) {
+    if (!c.host || name === "local") continue;
+    next[name] = {
+      host: c.host,
+      remoteSock: c.remote_sock || "/home/" + (c.user || "dylan") + "/.config/herdr/herdr.sock", // ssh -L needs an ABSOLUTE remote path
+      sock: path.join(os.homedir(), ".config", "herdr", `deck-${name}.sock`),
+    };
+  }
   SESSIONS = next;
 }
 
@@ -62,11 +67,13 @@ function ensureTunnel(name) {
 process.on("exit", () => { // take the tunnels down with us
   Object.values(tunnels).forEach((t) => { try { t.proc.kill(); } catch {} });
 });
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(0));
 
 // herdr closes the connection after each response, so: one connection per call
 function herdrOnce(sockPath, method, params) {
   return new Promise((resolve, reject) => {
     const c = net.connect(sockPath);
+    c.setEncoding("utf8"); // avoid splitting multibyte UTF-8 across data chunks
     let buf = "";
     const t = setTimeout(() => { c.destroy(); reject(new Error("timeout")); }, 2500);
     c.on("connect", () => c.write(JSON.stringify({ id: "r", method, params }) + "\n"));
@@ -87,7 +94,8 @@ function herdrOnce(sockPath, method, params) {
 }
 
 async function herdr(method, params = {}, sess = "local") {
-  const info = SESSIONS[sess] || SESSIONS.local;
+  const info = SESSIONS[sess];
+  if (!info) throw new Error(`unknown session '${sess}' (check sessions.json)`);
   if (info.host) ensureTunnel(sess);
   try {
     return await herdrOnce(info.sock, method, params);
@@ -102,7 +110,7 @@ async function herdr(method, params = {}, sess = "local") {
 }
 
 // ---------------- state ----------------
-const wsBySess = { local: [] };
+let wsBySess = { local: [] };
 function usedSessions() {
   const used = new Set(["local"]);
   Object.values(buttons).forEach((b) => used.add(b.session));
@@ -137,16 +145,25 @@ function render(context) {
   $UD.setPathIcon(context, `${PLUGIN_DIR}/resources/state_${st}_${b.index}.png`);
 }
 
+let polling = false;
 async function poll() {
-  for (const sess of usedSessions()) {
-    try {
-      const r = await herdr("workspace.list", {}, sess);
-      wsBySess[sess] = r.result?.workspaces || [];
-    } catch {
-      wsBySess[sess] = [];
-    }
+  if (polling) return; // a slow (dead-remote) poll must not stack behind the 2s timer
+  polling = true;
+  try {
+    const next = {};
+    await Promise.all(usedSessions().map(async (sess) => {
+      try {
+        const r = await herdr("workspace.list", {}, sess);
+        next[sess] = r.result?.workspaces || [];
+      } catch {
+        next[sess] = [];
+      }
+    }));
+    wsBySess = next; // full swap: removed sessions don't leave frozen status behind
+    Object.keys(buttons).forEach(render);
+  } finally {
+    polling = false;
   }
-  Object.keys(buttons).forEach(render);
 }
 
 // create a workspace rooted at the folder the focused pane is currently in
@@ -237,7 +254,7 @@ async function stepAgent(d, sess) {
   const r = await herdr("agent.list", {}, sess);
   const agents = r.result?.agents || [];
   if (!agents.length) return;
-  const i = agents.findIndex((a) => a.focused);
+  const i = Math.max(0, agents.findIndex((a) => a.focused));
   await herdr("agent.focus", { target: agents[(i + d + agents.length) % agents.length].pane_id }, sess);
 }
 
@@ -248,7 +265,7 @@ async function stepPane(d, sess) {
   // pane.list returns panes from every workspace — filter to the current tab ourselves
   const panes = (r.result?.panes || []).filter((p) => p.tab_id === ws.active_tab_id);
   if (panes.length < 2) return;
-  const i = panes.findIndex((p) => p.focused);
+  const i = Math.max(0, panes.findIndex((p) => p.focused));
   await herdr("pane.focus", { pane_id: panes[(i + d + panes.length) % panes.length].pane_id }, sess);
 }
 
@@ -257,7 +274,7 @@ async function stepTab(d, sess) {
   if (!ws) return;
   const r = await herdr("tab.list", { workspace_id: ws.workspace_id }, sess);
   const tabs = r.result?.tabs || [];
-  const i = tabs.findIndex((t) => t.focused);
+  const i = Math.max(0, tabs.findIndex((t) => t.focused));
   if (tabs.length > 1) {
     await herdr("tab.focus", { tab_id: tabs[(i + d + tabs.length) % tabs.length].tab_id }, sess);
   }
@@ -266,16 +283,17 @@ async function stepTab(d, sess) {
 async function stepSpace(d, sess) {
   const list = spaces(sess);
   if (list.length < 2) return;
-  const i = list.findIndex((w) => w.focused);
+  const i = Math.max(0, list.findIndex((w) => w.focused));
   await herdr("workspace.focus", { workspace_id: list[(i + d + list.length) % list.length].workspace_id }, sess);
 }
 
 // ---------------- button registry ----------------
 // Source of truth: our actions' settings from the profile manifests, keyed by
 // ActionID — the app does not reliably deliver ActionParam in its events.
-const byActionId = {};
+let byActionId = {};
 function loadProfiles() {
   const root = path.join(os.homedir(), "Library/Application Support/Ulanzi/UlanziDeck/ProfilesV2");
+  const next = {};
   try {
     for (const prof of fs.readdirSync(root)) {
       const pagesDir = path.join(root, prof, "Profiles");
@@ -285,12 +303,13 @@ function loadProfiles() {
           const d = JSON.parse(fs.readFileSync(path.join(pagesDir, page, "manifest.json"), "utf8"));
           for (const ctrl of d.Controllers || []) {
             for (const a of Object.values(ctrl.Actions || {})) {
-              if (a.Action?.startsWith(UUID)) byActionId[a.ActionID] = a.ActionParam || {};
+              if (a.Action?.startsWith(UUID)) next[a.ActionID] = a.ActionParam || {};
             }
           }
         } catch {}
       }
     }
+    byActionId = next; // full rebuild: deleted buttons don't linger
   } catch {}
 }
 
@@ -302,7 +321,7 @@ const KNOB_PRESS = { knob_tabs: "new_tab", knob_agents: "jump_blocked", knob_pan
 
 function configFor(jsn) {
   // what the button does comes from the action UUID; where it acts (session) from stored settings
-  const stored = byActionId[jsn.actionid] || jsn.param || {};
+  const stored = { ...(byActionId[jsn.actionid] || {}), ...(jsn.param || {}) }; // fresh event param wins over the 30s disk cache
   const actionUuid = (jsn.uuid || jsn.context.split("___")[0] || "");
   const suffix = actionUuid.startsWith(UUID + ".") ? actionUuid.slice(UUID.length + 1) : "";
   const sp = /^space([1-9])$/.exec(suffix);
@@ -312,10 +331,13 @@ function configFor(jsn) {
 
 function register(jsn) {
   const p = configFor(jsn);
-  const session = SESSIONS[p.session] ? p.session : "local";
+  const session = p.session || "local"; // keep the declared session even if unknown — ops then fail loudly instead of hitting local
   if (p.op) {
     buttons[jsn.context] = { op: p.op, session };
-    const icon = p.op === "session_label" ? `label_${session === "local" ? "local" : "remote"}` : p.op;
+    let icon = p.op;
+    if (p.op === "session_label") {
+      icon = fs.existsSync(`${PLUGIN_DIR}/resources/label_${session}.png`) ? `label_${session}` : "label_remote";
+    }
     $UD.setPathIcon(jsn.context, `${PLUGIN_DIR}/resources/${icon}.png`);
   } else {
     buttons[jsn.context] = { index: parseInt(p.index, 10) || 1, session };
@@ -330,7 +352,7 @@ async function press(jsn) {
   const now = Date.now();
   if (now - (b.pressedAt || 0) < 200) return; // keydown and dialdown can both fire for one press
   b.pressedAt = now;
-  await enqueue(async () => {
+  await enqueue(b.session, async () => {
   try {
     if (b.op) await OPS[KNOB_PRESS[b.op] || b.op]?.(b.session);
     else {
@@ -340,6 +362,7 @@ async function press(jsn) {
       for (let count = main.length; !ws && count < b.index && count < 9; count++) {
         const created = await createSpaceHere(b.session);
         if (!created) break;
+        (wsBySess[b.session] ||= []).push(created); // next press sees it even before the poll returns
         if (count + 1 >= b.index) ws = created;
       }
       if (ws) {
@@ -370,7 +393,8 @@ function dial(jsn, d, hold) {
   if (!buttons[jsn.context]) register(jsn);
   const b = buttons[jsn.context];
   if (!b?.op) return;
-  return enqueue(async () => {
+  if ((pendingOps[b.session || "local"] || 0) > 3) return; // drop excess detents instead of queueing minutes of work
+  return enqueue(b.session, async () => {
     try {
       if (b.op === "knob_tabs") await (hold && d < 0 ? OPS.close_tab(b.session) : stepTab(d, b.session));
       else if (b.op === "knob_agents") await stepAgent(d, b.session);

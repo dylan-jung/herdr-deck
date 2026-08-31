@@ -48,7 +48,8 @@ for mf in glob.glob(f'{base}/ProfilesV2/*.ulanziProfile/manifest.json'):
     m = json.load(open(mf))
     pdir = os.path.dirname(mf)
     pages = m['Pages']['Pages']
-    SESS = [None, 'remote', 'gpu-box']
+    cfg = json.load(open(f'{PLUG}/sessions.json'))
+    SESS = [None] + list(cfg.get('sessions', {}).keys())
     while len(pages) < len(SESS):
         pages.append(str(uuid.uuid4()))
     json.dump(m, open(mf, 'w'), ensure_ascii=False, indent=1)
@@ -56,13 +57,20 @@ for mf in glob.glob(f'{base}/ProfilesV2/*.ulanziProfile/manifest.json'):
         os.makedirs(f'{pdir}/Profiles/{page_id}', exist_ok=True)
         out = f'{pdir}/Profiles/{page_id}/manifest.json'
         page = build_page(sess)
-        try:  # keep app-managed entries (배경 설정 등) that we don't own
+        for c in page['Controllers']:  # stable ActionIDs so reruns don't strand the app's in-memory IDs
+            for pos, a in c['Actions'].items():
+                seed = f"herdr-deck:{sess or 'local'}:{c['Type']}:{pos}:{a['Action']}"
+                a['ActionID'] = str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
+        try:  # keep app-managed / user-assigned entries we don't own, on every controller type
             prev = json.load(open(out))
+            by_type = {c['Type']: c for c in page['Controllers']}
             for pc in prev['Controllers']:
-                if pc['Type'] == 'Keypad':
-                    for pos, a in pc['Actions'].items():
-                        if not str(a.get('Action', '')).startswith('com.ulanzi.ulanzistudio.herdrstatus'):
-                            page['Controllers'][1]['Actions'][pos] = a
+                tgt = by_type.get(pc['Type'])
+                if not tgt:
+                    continue
+                for pos, a in pc['Actions'].items():
+                    if not str(a.get('Action', '')).startswith('com.ulanzi.ulanzistudio.herdrstatus'):
+                        tgt['Actions'][pos] = a
         except Exception:
             pass
         json.dump(page, open(out, 'w'), ensure_ascii=False, indent=1)
