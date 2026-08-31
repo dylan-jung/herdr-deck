@@ -1,0 +1,42 @@
+{
+  "Version": "1.1.0",
+  "Author": "dylanjung",
+  "Name": "Herdr",
+  "Description": "Herdr spaces, tabs, panes and agents",
+  "Icon": "resources/icon.png",
+  "Category": "Herdr",
+  "CategoryIcon": "resources/icon.png",
+  "CodePath": "plugin/app.js",
+  "Type": "JavaScript",
+  "PrivateAPI": false,
+  "SupportedInMultiActions": false,
+  "UUID": "com.ulanzi.ulanzistudio.herdrstatus",
+  "Actions": [
+    { "Name": "Space 1", "Icon": "resources/state_unknown_1.png", "state": 0, "States": [{ "Image": "resources/state_unknown_1.png" }, { "Image": "resources/state_idle_1.png" }, { "Image": "resources/state_working_1.png" }, { "Image": "resources/state_blocked_1.png" }, { "Image": "resources/state_done_1.png" }], "Tooltip": "Space 1 상태 표시, 누르면 이동(없으면 생성)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.space1", "SupportedInMultiActions": false },
+    { "Name": "Space 2", "Icon": "resources/state_unknown_2.png", "state": 0, "States": [{ "Image": "resources/state_unknown_2.png" }, { "Image": "resources/state_idle_2.png" }, { "Image": "resources/state_working_2.png" }, { "Image": "resources/state_blocked_2.png" }, { "Image": "resources/state_done_2.png" }], "Tooltip": "Space 2 상태 표시, 누르면 이동(없으면 생성)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.space2", "SupportedInMultiActions": false },
+    { "Name": "Space 3", "Icon": "resources/state_unknown_3.png", "state": 0, "States": [{ "Image": "resources/state_unknown_3.png" }, { "Image": "resources/state_idle_3.png" }, { "Image": "resources/state_working_3.png" }, { "Image": "resources/state_blocked_3.png" }, { "Image": "resources/state_done_3.png" }], "Tooltip": "Space 3 상태 표시, 누르면 이동(없으면 생성)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.space3", "SupportedInMultiActions": false },
+    { "Name": "Space 4", "Icon": "resources/state_unknown_4.png", "state": 0, "States": [{ "Image": "resources/state_unknown_4.png" }, { "Image": "resources/state_idle_4.png" }, { "Image": "resources/state_working_4.png" }, { "Image": "resources/state_blocked_4.png" }, { "Image": "resources/state_done_4.png" }], "Tooltip": "Space 4 상태 표시, 누르면 이동(없으면 생성)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.space4", "SupportedInMultiActions": false },
+    { "Name": "Space 5", "Icon": "resources/state_unknown_5.png", "state": 0, "States": [{ "Image": "resources/state_unknown_5.png" }, { "Image": "resources/state_idle_5.png" }, { "Image": "resources/state_working_5.png" }, { "Image": "resources/state_blocked_5.png" }, { "Image": "resources/state_done_5.png" }], "Tooltip": "Space 5 상태 표시, 누르면 이동(없으면 생성)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.space5", "SupportedInMultiActions": false },
+    { "Name": "세로 분할", "Icon": "resources/split_v.png", "state": 0, "States": [{ "Image": "resources/split_v.png" }], "Tooltip": "현재 창을 좌우로 분할", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.split_v", "SupportedInMultiActions": false },
+    { "Name": "가로 분할", "Icon": "resources/split_h.png", "state": 0, "States": [{ "Image": "resources/split_h.png" }], "Tooltip": "현재 창을 위아래로 분할", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.split_h", "SupportedInMultiActions": false },
+    { "Name": "창 닫기", "Icon": "resources/close_pane.png", "state": 0, "States": [{ "Image": "resources/close_pane.png" }], "Tooltip": "현재 창(pane) 닫기", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.close_pane", "SupportedInMultiActions": false },
+    { "Name": "창 선택", "Icon": "resources/cycle_pane.png", "state": 0, "States": [{ "Image": "resources/cycle_pane.png" }], "Tooltip": "현재 탭의 창들을 순환", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.cycle_pane", "SupportedInMultiActions": false },
+    { "Name": "줌", "Icon": "resources/zoom_pane.png", "state": 0, "States": [{ "Image": "resources/zoom_pane.png" }], "Tooltip": "현재 창 확대/복원 토글", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.zoom_pane", "SupportedInMultiActions": false },
+    { "Name": "새 탭", "Icon": "resources/new_tab.png", "state": 0, "States": [{ "Image": "resources/new_tab.png" }], "Tooltip": "현재 스페이스에 새 탭", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.new_tab", "SupportedInMultiActions": false },
+    { "Name": "탭 닫기", "Icon": "resources/close_tab.png", "state": 0, "States": [{ "Image": "resources/close_tab.png" }], "Tooltip": "현재 탭 닫기", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.close_tab", "SupportedInMultiActions": false },
+    { "Name": "호출 응답", "Icon": "resources/jump_blocked.png", "state": 0, "States": [{ "Image": "resources/jump_blocked.png" }], "Tooltip": "응답 대기(blocked) 중인 에이전트로 점프", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.jump_blocked", "SupportedInMultiActions": false },
+    { "Name": "새 워크트리", "Icon": "resources/new_worktree.png", "state": 0, "States": [{ "Image": "resources/new_worktree.png" }], "Tooltip": "git worktree + 새 스페이스 생성", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.new_worktree", "SupportedInMultiActions": false },
+    { "Name": "워크트리 정리", "Icon": "resources/remove_worktree.png", "state": 0, "States": [{ "Image": "resources/remove_worktree.png" }], "Tooltip": "현재 워크트리 스페이스 제거 (브랜치는 유지)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.remove_worktree", "SupportedInMultiActions": false },
+    { "Name": "새 스페이스", "Icon": "resources/new_space.png", "state": 0, "States": [{ "Image": "resources/new_space.png" }], "Tooltip": "스페이스 생성 후 이동", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.new_space", "SupportedInMultiActions": false },
+    { "Name": "Lazygit", "Icon": "resources/lazygit.png", "state": 0, "States": [{ "Image": "resources/lazygit.png" }], "Tooltip": "lazygit 팝업 열기 (herdr popup)", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.lazygit", "SupportedInMultiActions": false },
+    { "Name": "세션 표시", "Icon": "resources/label_local.png", "state": 0, "States": [{ "Image": "resources/label_local.png" }], "Tooltip": "이 페이지가 제어하는 herdr 세션(호스트) 표시", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.session_label", "SupportedInMultiActions": false },
+    { "Name": "herdr 탭 (노브)", "Icon": "resources/knob_tabs.png", "state": 0, "States": [{ "Image": "resources/knob_tabs.png" }], "Controllers": ["Keypad", "Encoder"], "Tooltip": "회전: 이전/다음 탭, 누름: 새 탭, 누른 채 왼쪽 회전: 탭 닫기", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.knob_tabs", "SupportedInMultiActions": false },
+    { "Name": "herdr 에이전트 (노브)", "Icon": "resources/knob_agents.png", "state": 0, "States": [{ "Image": "resources/knob_agents.png" }], "Controllers": ["Keypad", "Encoder"], "Tooltip": "회전: 에이전트 순회, 누름: 응답 대기 에이전트로 점프", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.knob_agents", "SupportedInMultiActions": false },
+    { "Name": "herdr 스페이스 (노브)", "Icon": "resources/knob_spaces.png", "state": 0, "States": [{ "Image": "resources/knob_spaces.png" }], "Controllers": ["Keypad", "Encoder"], "Tooltip": "회전: 스페이스 이전/다음, 누름: 새 스페이스", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.knob_spaces", "SupportedInMultiActions": false },
+    { "Name": "herdr 창 (노브)", "Icon": "resources/knob_panes.png", "state": 0, "States": [{ "Image": "resources/knob_panes.png" }], "Controllers": ["Keypad", "Encoder"], "Tooltip": "회전: 창 순회, 누름: 줌 토글", "UUID": "com.ulanzi.ulanzistudio.herdrstatus.knob_panes", "SupportedInMultiActions": false }
+  ],
+  "OS": [
+    { "Platform": "mac", "MinimumVersion": "10.11" }
+  ],
+  "Software": { "MinVersion": "2.1.4" }
+}
