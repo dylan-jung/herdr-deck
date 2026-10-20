@@ -92,3 +92,7 @@ To restart only the plugin, kill the process and rerun it with the same argument
 ```bash
 "/Applications/Ulanzi Studio.app/Contents/MacOS/NodeJS/node" plugin/app.js 127.0.0.1 3906 ko-KR
 ```
+
+## License
+
+MIT (see [LICENSE](LICENSE)), except `plugin/libs/`, which is vendored from [UlanziTechnology/plugin-common-node](https://github.com/UlanziTechnology/plugin-common-node) under the Apache License 2.0 (see `plugin/libs/LICENSE` and `plugin/libs/NOTICE`).

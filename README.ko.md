@@ -92,3 +92,7 @@ scripts/deploy.mjs      # 빌드(esbuild)·설치·재시작
 ```bash
 "/Applications/Ulanzi Studio.app/Contents/MacOS/NodeJS/node" plugin/app.js 127.0.0.1 3906 ko-KR
 ```
+
+## 라이선스
+
+MIT ([LICENSE](LICENSE)). 단 `plugin/libs/`는 [UlanziTechnology/plugin-common-node](https://github.com/UlanziTechnology/plugin-common-node)에서 가져온 Apache License 2.0 코드다 (`plugin/libs/LICENSE`, `plugin/libs/NOTICE` 참고).

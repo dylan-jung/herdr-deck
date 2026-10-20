@@ -1,0 +1,6 @@
+These files are vendored from UlanziTechnology/plugin-common-node
+(https://github.com/UlanziTechnology/plugin-common-node), licensed under
+the Apache License 2.0 (see LICENSE in this directory).
+
+Modifications in this repository: source comments were translated from
+Chinese to English. No code was changed.
