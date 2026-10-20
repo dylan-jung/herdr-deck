@@ -21,7 +21,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   connect(uuid, port = 3906, address = "127.0.0.1") {
-    //动态获取ip和端口
+    //Get IP and port dynamically
     const [argv_address, argv_port, argv_language] = process.argv.splice(2);
 
     this.address = argv_address || address;
@@ -35,7 +35,7 @@ export default class UlanziApi extends EventEmitter {
       this.websocket = null;
     }
 
-    //判断是否为主服务,约定主服务 uuid 为4位，action应大于4位
+    //Check whether this is the main service: by convention the main service uuid has 4 segments, actions have more
     const isMain = this.uuid.split(".").length == 4;
 
     this.websocket = new WebSocket(`ws://${this.address}:${this.port}`);
@@ -52,9 +52,9 @@ export default class UlanziApi extends EventEmitter {
 
       this.emit(Events.CONNECTED, {});
 
-      //如果是主服务，则不进行本地化
+      //If this is the main service, skip localization
       if (!isMain) {
-        // this.localizeUI();  //node 不做本地化
+        // this.localizeUI();  //node: no localization
       }
     };
 
@@ -88,7 +88,7 @@ export default class UlanziApi extends EventEmitter {
         }, ${JSON.stringify(data)}`
       );
 
-      //没有数据或者有data.code属性,且cmdType不等于REQUEST，则返回
+      //Return if there is no data, or data has a code property and cmdType is not REQUEST
       if (
         !data ||
         (typeof data.code !== "undefined" && data.cmdType !== "REQUEST")
@@ -97,24 +97,24 @@ export default class UlanziApi extends EventEmitter {
 
       Utils.log("[ULANZIDECK] MAIN WEBSOCKET MESSGE IN");
 
-      //没有key时，保存key
+      //Save the key if not set yet
       if (!this.key && data.uuid == this.uuid && data.key) {
         this.key = data.key;
       }
-      //没有actionid时，保存actionid
+      //Save the actionid if not set yet
       if (!this.actionid && data.uuid == this.uuid && data.actionid) {
         this.actionid = data.actionid;
       }
 
       if (isMain) {
-        //主服务回应上位机
+        //Main service replies to the host app
         this.send(data.cmd, {
           code: 0,
           ...data,
         });
       }
 
-      //特殊处理clear,因为clear事件变量是数组形式
+      //Special handling for clear, since the clear event param is an array
       if (data.cmd == "clear") {
         if (data.param) {
           for (let i = 0; i < data.param.length; i++) {
@@ -123,18 +123,18 @@ export default class UlanziApi extends EventEmitter {
           }
         }
       } else {
-        //拼接唯一id给功能页
+        //Build the unique id for the action page
         const context = this.encodeContext(data);
         data.context = context;
       }
 
-      //引发事件
+      //Emit the event
       this.emit(data.cmd, data);
     };
   }
 
   /**
-   * 本地化
+   * Localization
    */
   async localizeUI() {
     if (!this.localization) {
@@ -158,14 +158,14 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 创建唯一值
+   * Create a unique id
    */
   encodeContext(jsn) {
     return jsn.uuid + "___" + jsn.key + "___" + jsn.actionid;
   }
 
   /**
-   * 解构唯一值
+   * Parse a unique id
    */
   decodeContext(context) {
     const de_ctx = context.split("___");
@@ -202,9 +202,9 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 向上位机发送配置参数
-   * @param {object} settings 必传 | 配置参数
-   * @param {object} context 可选 | 唯一id。非必传，由action页面发出时可以不传，由主服务发出必传
+   * Send settings to the host app (Ulanzi Studio)
+   * @param {object} settings required | settings
+   * @param {object} context optional | unique id. Optional when sent from the action page; required when sent from the main service
    */
   sendParamFromPlugin(settings, context) {
     const { uuid, key, actionid } = context ? this.decodeContext(context) : {};
@@ -217,11 +217,11 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机使⽤浏览器打开url
-   * @param {string} url 必传 | 直接远程地址和本地地址，⽀持打开插件根⽬录下的url链接（以/ ./ 起始的链接）。
-   *                           只能是基本路径，不能带参数，需要带参数请设置在param值里面
-   * @param {local} boolean 可选 | 若为本地地址为true
-   * @param {object} param 可选 | 路径的参数值
+   * Ask the host app to open a url in the browser
+   * @param {string} url required | remote or local address; supports urls under the plugin root (starting with / or ./).
+   *                           Base path only, no query params; put params in param instead
+   * @param {local} boolean optional | true if the address is local
+   * @param {object} param optional | query params for the path
    */
   openUrl(url, local, param) {
     this.send(Events.OPENURL, {
@@ -232,13 +232,13 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机机显⽰弹窗；弹窗后，test.html需要主动关闭，测试到window.close()可以通知弹窗关闭
-   *  @param {string} url 必传 | 本地html路径，只能是基本路径，不能带参数，需要带参数请设置在param值里面
-   * @param {string} width 可选 | 窗口宽度，默认200
-   * @param {string} height 可选 | 窗口高度，默认200
-   * @param {string} x 可选 | 窗口x坐标，不传值默认居中
-   * @param {string} y 可选 | 窗口y坐标，不传值默认居中
-   * @param {object} param 可选 | 路径的参数值
+   * Ask the host app to show a popup window; test.html must close itself, window.close() notifies the popup to close
+   *  @param {string} url required | local html path; base path only, no query params; put params in param instead
+   * @param {string} width optional | window width, default 200
+   * @param {string} height optional | window height, default 200
+   * @param {string} x optional | window x coordinate, centered by default
+   * @param {string} y optional | window y coordinate, centered by default
+   * @param {object} param optional | query params for the path
    */
   openView(url, width = 200, height = 200, x, y, param) {
     const params = {
@@ -259,8 +259,8 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机弹出Toast消息提⽰
-   *  @param {string} msg 必传 | 窗口级消息提示
+   * Ask the host app to show a toast message
+   *  @param {string} msg required | window-level message
    */
   toast(msg) {
     this.send(Events.TOAST, {
@@ -269,8 +269,8 @@ export default class UlanziApi extends EventEmitter {
   }
   
   /**
-   * 请求上位机弹出快捷键
-   *  @param {string} key 必传 | 快捷键
+   * Ask the host app to trigger a hotkey
+   *  @param {string} key required | hotkey
    */
   hotkey(key) {
     this.send(Events.HOTKEY, {
@@ -279,9 +279,9 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机弹出日志消息提⽰
-   *  @param {string} msg 必传 | 保存到插件UUID.txt中
-   *  @param {string} level 可选 | 日志级别 info|debug|warn|error
+   * Ask the host app to write a log message
+   *  @param {string} msg required | saved to <plugin UUID>.txt
+   *  @param {string} level optional | log level info|debug|warn|error
    */
   logMessage(msg, level) {
     this.send(Events.LOGMESSAGE, {
@@ -290,9 +290,9 @@ export default class UlanziApi extends EventEmitter {
     });
   }
   /**
-   *  主服务发出，上位机透传参数到action页面，此透传参数上位机不保存
-   *  @param {object} settings 必传 | 设置
-   *  @param {string} context 必传 | 唯一id，需要指定发送到哪个action
+   *  Sent by the main service; the host app passes params through to the action page without saving them
+   *  @param {object} settings required | settings
+   *  @param {string} context required | unique id of the target action
    */
   sendToPropertyInspector(settings, context) {
     const { uuid, key, actionid } = context ? this.decodeContext(context) : {};
@@ -305,8 +305,8 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   *  action页面发出，上位机透传参数到主服务，此透传参数上位机不保存
-   *  @param {object} settings 必传 | 设置
+   *  Sent by the action page; the host app passes params through to the main service without saving them
+   *  @param {object} settings required | settings
    */
   sendToPlugin(settings) {
     this.send(Events.SENDTOPLUGIN, {
@@ -318,8 +318,8 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机在按键上显示错误提示
-   *  @param {string} context 可选 | 唯一id。非必传，由action页面发出时可以不传，由主服务发出必传
+   * Ask the host app to show an error indicator on the key
+   *  @param {string} context optional | unique id. Optional when sent from the action page; required when sent from the main service
    */
   showAlert(context) {
     const { uuid, key, actionid } = context ? this.decodeContext(context) : {};
@@ -331,8 +331,8 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机发送已保存的参数，上位机接收后会触发didReceiveSettings事件转发至另一端
-   *  @param {string} context 可选 | 唯一id。非必传，由action页面发出时可以不传，由主服务发出必传
+   * Ask the host app to send saved settings; it then fires didReceiveSettings to the other side
+   *  @param {string} context optional | unique id. Optional when sent from the action page; required when sent from the main service
    */
   getSettings(context) {
     const { uuid, key, actionid } = context ? this.decodeContext(context) : {};
@@ -344,9 +344,9 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 主动向上位机保存参数，上位机接收后会触发didReceiveSettings事件转发至另一端
-   *  @param {object} settings 必传 | 配置参数
-   *  @param {string} context 可选 | 唯一id。非必传，由action页面发出时可以不传，由主服务发出必传
+   * Save settings to the host app; it then fires didReceiveSettings to the other side
+   *  @param {object} settings required | settings
+   *  @param {string} context optional | unique id. Optional when sent from the action page; required when sent from the main service
    */
   setSettings(settings, context) {
     console.warn('===---setSettings:', JSON.stringify(settings), context)
@@ -360,8 +360,8 @@ export default class UlanziApi extends EventEmitter {
   }
 
      /**
-     * 请求上位机发送已保存的全局参数，上位机接收后会触发didReceiveGlobalSettings事件转发至另一端
-     *  @param {string} context 可选 | 唯一id。非必传，由action页面发出时可以不传，由主服务发出必传
+     * Ask the host app to send saved global settings; it then fires didReceiveGlobalSettings to the other side
+     *  @param {string} context optional | unique id. Optional when sent from the action page; required when sent from the main service
      */
     getGlobalSettings(context) {
       const { uuid, key, actionid } = context ? this.decodeContext(context) : {};
@@ -373,9 +373,9 @@ export default class UlanziApi extends EventEmitter {
     }
   
     /**
-     * 主动向上位机保存参数，上位机接收后会触发didReceiveGlobalSettings事件转发至另一端
-     *  @param {object} settings 必传 | 配置参数
-     *  @param {string} context 可选 | 唯一id。非必传，由action页面发出时可以不传，由主服务发出必传
+     * Save global settings to the host app; it then fires didReceiveGlobalSettings to the other side
+     *  @param {object} settings required | settings
+     *  @param {string} context optional | unique id. Optional when sent from the action page; required when sent from the main service
      */
     setGlobalSettings(settings, context) {
       const { uuid, key, actionid } = context ? this.decodeContext(context) : {};
@@ -388,9 +388,9 @@ export default class UlanziApi extends EventEmitter {
     }
 
   /**
-   * 请求上位机弹出选择对话框:选择文件
-   *  @param {string} filter 可选 | 文件过滤器。筛选文件的类型，例如 "filter": "image(*.jpg *.png *.gif)" 或者 筛选文件 file(*.txt *.json) 等
-   * 该请求的选择结果请通过 onSelectdialog 事件接收
+   * Ask the host app to open a selection dialog: select file
+   *  @param {string} filter optional | file type filter, e.g. "filter": "image(*.jpg *.png *.gif)" or file(*.txt *.json)
+   * The selection result is delivered via the onSelectdialog event
    */
   selectFileDialog(filter) {
     this.send(Events.SELECTDIALOG, {
@@ -400,8 +400,8 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 请求上位机弹出选择对话框:选择文件夹
-   * 该请求的选择结果请通过 onSelectdialog 事件接收
+   * Ask the host app to open a selection dialog: select folder
+   * The selection result is delivered via the onSelectdialog event
    */
   selectFolderDialog() {
     this.send(Events.SELECTDIALOG, {
@@ -467,10 +467,10 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 设置图标-使⽤配置⾥的图标列表编号，请对照manifest.json
-   * @param {string} context 必传 |唯一id,每个message里面common库会自动拼接给出
-   * @param {number} state 必传 | 图标列表编号，
-   * @param {string} text 可选 | icon是否显示文字
+   * Set icon - use an icon index from the configured list (see manifest.json)
+   * @param {string} context required | unique id; the common lib fills it in automatically for each message
+   * @param {number} state required | icon list index
+   * @param {string} text optional | text to show on the icon
    */
   setStateIcon(context, state, text) {
     const { uuid, key, actionid } = this.decodeContext(context);
@@ -492,10 +492,10 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 设置图标-使⽤⾃定义图标
-   * @param {string} context 必传 |唯一id,每个message里面common库会自动拼接给出
-   * @param {string} data 必传 | base64格式的icon
-   * @param {string} text 可选 | icon是否显示文字
+   * Set icon - use a custom icon
+   * @param {string} context required | unique id; the common lib fills it in automatically for each message
+   * @param {string} data required | base64 icon
+   * @param {string} text optional | text to show on the icon
    */
   setBaseDataIcon(context, data, text) {
     const { uuid, key, actionid } = this.decodeContext(context);
@@ -517,10 +517,10 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 设置图标-使⽤本地图片文件
-   * @param {string} context 必传 |唯一id,每个message里面common库会自动拼接给出
-   * @param {string} path  必传 | 本地图片路径，⽀持打开插件根⽬录下的url链接（以/ ./ 起始的链接）
-   * @param {string} text 可选 | icon是否显示文字
+   * Set icon - use a local image file
+   * @param {string} context required | unique id; the common lib fills it in automatically for each message
+   * @param {string} path  required | local image path; supports paths under the plugin root (starting with / or ./)
+   * @param {string} text optional | text to show on the icon
    */
   setPathIcon(context, path, text) {
     const { uuid, key, actionid } = this.decodeContext(context);
@@ -542,10 +542,10 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 设置图标-使⽤⾃定义的动图
-   * @param {string} context 必传 |唯一id,每个message里面common库会自动拼接给出
-   * @param {string} gifdata  必传 | ⾃定义gif的base64编码数据
-   * @param {string} text 可选 | icon是否显示文字
+   * Set icon - use a custom animated gif
+   * @param {string} context required | unique id; the common lib fills it in automatically for each message
+   * @param {string} gifdata  required | base64-encoded custom gif data
+   * @param {string} text optional | text to show on the icon
    */
   setGifDataIcon(context, gifdata, text) {
     const { uuid, key, actionid } = this.decodeContext(context);
@@ -567,10 +567,10 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 设置图标-使⽤本地gif⽂件
-   * @param {string} context 必传 |唯一id,每个message里面common库会自动拼接给出，
-   * @param {string} gifdata  必传 | 本地gif图片路径，⽀持打开插件根⽬录下的url链接（以/ ./ 起始的链接）
-   * @param {string} text 可选 | icon是否显示文字
+   * Set icon - use a local gif file
+   * @param {string} context required | unique id; the common lib fills it in automatically for each message
+   * @param {string} gifdata  required | local gif path; supports paths under the plugin root (starting with / or ./)
+   * @param {string} text optional | text to show on the icon
    */
   setGifPathIcon(context, gifpath, text) {
     const { uuid, key, actionid } = this.decodeContext(context);
@@ -592,7 +592,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 监听socket连接事件
+   * Listen for the socket connected event
    * @param {import('../apiTypes.d.ts').OnConnected} fn
    */
   onConnected(fn) {
@@ -607,7 +607,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 监听socket断开事件
+   * Listen for the socket closed event
    * @param {import('../apiTypes.d.ts').OnClose} fn
    */
   onClose(fn) {
@@ -622,7 +622,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 监听socket错误事件
+   * Listen for the socket error event
    * @param {import('../apiTypes.d.ts').OnError} fn
    */
   onError(fn) {
@@ -637,7 +637,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：add
+   * Host app event: add
    * @param {import('../apiTypes.d.ts').OnCmdAddResp} fn
    */
   onAdd(fn) {
@@ -652,7 +652,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：paramfromapp
+   * Host app event: paramfromapp
    * @param {import('../apiTypes.d.ts').OnCmdParamFromAppResp} fn
    */
   onParamFromApp(fn) {
@@ -667,7 +667,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：paramfromplugin
+   * Host app event: paramfromplugin
    * @param {import('../apiTypes.d.ts').OnCmdParamFromPluginResp} fn
    */
   onParamFromPlugin(fn) {
@@ -682,7 +682,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：run
+   * Host app event: run
    * @param {import('../apiTypes.d.ts').OnCmdRunResp} fn
    */
   onRun(fn) {
@@ -697,7 +697,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：setactive
+   * Host app event: setactive
    * @param {import('../apiTypes.d.ts').OnCmdSetActiveResp} fn
    */
   onSetActive(fn) {
@@ -712,7 +712,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：clear
+   * Host app event: clear
    * @param {import('../apiTypes.d.ts').OnCmdClearResp} fn
    */
   onClear(fn) {
@@ -727,7 +727,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：返回选择弹窗结果
+   * Host app event: selection dialog result
    * @param {import('../apiTypes.d.ts').OnCmdSelectDialogResp} fn
    */
   onSelectdialog(fn) {
@@ -742,7 +742,7 @@ export default class UlanziApi extends EventEmitter {
   }
   
   /**
-   * 接收上位机事件：didReceiveSettings, 接受上位机保存的参数
+   * Host app event: didReceiveSettings, settings saved by the host app
    */
   onDidReceiveSettings(fn) {
     if (!fn) {
@@ -756,7 +756,7 @@ export default class UlanziApi extends EventEmitter {
 
   
    /**
-   * didReceiveGlobalSettings, 接受全局设置的参数
+   * didReceiveGlobalSettings, global settings
    */
   onDidReceiveGlobalSettings(fn) {
     if (!fn) {
@@ -770,7 +770,7 @@ export default class UlanziApi extends EventEmitter {
 
     /**
    * 
-   * 接收 主服务发给功能页的透传参数事件
+   * Pass-through params from the main service to the action page
    */
   onSendToPropertyInspector(fn) {
     if (!fn) {
@@ -784,7 +784,7 @@ export default class UlanziApi extends EventEmitter {
 
   /**
    * 
-   * 接收 功能页发给主服务的透传参数事件
+   * Pass-through params from the action page to the main service
    */
   onSendToPlugin(fn) {
     if (!fn) {
@@ -797,7 +797,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：keydown, 接收上位机按键按下事件
+   * Host app event: keydown, key pressed
    */
   onKeyDown(fn) {
     if (!fn) {
@@ -809,7 +809,7 @@ export default class UlanziApi extends EventEmitter {
     return this;
   }
   /**
-   * 接收上位机事件：keyup, 接收上位机按键松开事件
+   * Host app event: keyup, key released
    */
   onKeyUp(fn) {
     if (!fn) {
@@ -821,7 +821,7 @@ export default class UlanziApi extends EventEmitter {
     return this;
   }
   /**
-   * 接收上位机事件：dialdown, 接收上位机旋钮按下事件
+   * Host app event: dialdown, dial pressed
    */
   onDialDown(fn) {
     if (!fn) {
@@ -833,7 +833,7 @@ export default class UlanziApi extends EventEmitter {
     return this;
   }
   /**
-   * 接收上位机事件：dialup, 接收上位机旋钮松开事件
+   * Host app event: dialup, dial released
    */
   onDialUp(fn) {
     if (!fn) {
@@ -845,7 +845,7 @@ export default class UlanziApi extends EventEmitter {
     return this;
   }
   /**
-   * 接收上位机事件：dialrotate, 接收上位机旋钮向左旋转事件
+   * Host app event: dialrotate, dial rotated left
    */
   onDialRotateLeft(fn) {
     if (!fn) {
@@ -862,7 +862,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：dialrotate, 接收上位机旋钮向右旋转事件
+   * Host app event: dialrotate, dial rotated right
    */
   onDialRotateRight(fn) {
     if (!fn) {
@@ -879,7 +879,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：dialrotate, 接收上位机旋钮按住向左旋转事件
+   * Host app event: dialrotate, dial rotated left while held
    */
   onDialRotateHoldLeft(fn) {
     if (!fn) {
@@ -896,7 +896,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：dialrotate, 接收上位机旋钮按住向右旋转事件
+   * Host app event: dialrotate, dial rotated right while held
    */
   onDialRotateHoldRight(fn) {
     if (!fn) {
@@ -905,7 +905,7 @@ export default class UlanziApi extends EventEmitter {
       );
     }
     this.on(Events.DIALROTATE, (jsn) => {
-      // 注意：原数据中有个拼写错误"hold—right"，这里使用正确的连字符
+      // Note: the original data had a typo "hold—right"; the correct hyphen is used here
       if (jsn.rotateEvent === "hold-right") {
         fn(jsn);
       }
@@ -914,7 +914,7 @@ export default class UlanziApi extends EventEmitter {
   }
 
   /**
-   * 接收上位机事件：dialrotate, 接收上位机旋钮旋转事件
+   * Host app event: dialrotate, dial rotated
    */
   onDialRotate(fn) {
     if (!fn) {

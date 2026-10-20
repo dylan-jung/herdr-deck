@@ -1,0 +1,8 @@
+{
+  "sessions": {
+    "remote": {
+      "host": "my-server",
+      "remote_sock": "/home/me/.config/herdr/herdr.sock"
+    }
+  }
+}

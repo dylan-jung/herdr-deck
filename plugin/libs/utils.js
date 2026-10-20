@@ -2,7 +2,7 @@ class UlanziUtils {
 
 
 	/**
-	 * 获取表单数据
+	 * Get form data
 	 * Returns the value from a form using the form controls name property
 	 * @param {Element | string} form
 	 * @returns
@@ -36,7 +36,7 @@ class UlanziUtils {
 	}
 
 	/**
-	 * 重载表单数据
+	 * Reload form data
 	 * Sets the value of form controls using their name attribute and the jsn object key
 	 * @param {*} jsn
 	 * @param {Element | string} form
@@ -77,7 +77,7 @@ class UlanziUtils {
 	}
 
 	/**
-	 * 防抖
+	 * Debounce
 	 * This provides a slight delay before processing rapid events
 	 * @param {function} fn
 	 * @param {number} wait - delay before processing function (recommended time 150ms)
@@ -96,7 +96,7 @@ class UlanziUtils {
 
 
 	/**
-	   * JSON.parse优化
+	   * Safer JSON.parse
 	 * parse json
 	 * @param {string} jsonString
 	 * @returns {object} json
@@ -115,7 +115,7 @@ class UlanziUtils {
 
 
 	/**
-   * 获取随机时间戳
+   * Get a random timestamp
    */
 	joinTimestamp() {
 		const now = new Date().getTime();
@@ -123,7 +123,7 @@ class UlanziUtils {
 	}
 
 	/**
-	  * 适配语言环境
+	  * Adapt to the language locale
    */
 	adaptLanguage(ln) {
 		let userLanguage = ln;
@@ -143,7 +143,7 @@ class UlanziUtils {
 	}
 
 	/**
-   * 获取插件根目录路径
+   * Get the plugin root directory path
    */
 	getPluginPath() {
 		const currentFilePath = process.argv[1];
@@ -159,7 +159,7 @@ class UlanziUtils {
 
 	}
 
-	// 获取运行环境系统类型
+	// Get the OS type of the runtime environment
 	getSystemType() {
 		return process.platform === 'win32' ? 'windows' : 'mac';
 
