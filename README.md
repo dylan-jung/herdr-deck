@@ -23,17 +23,25 @@ Ulanzi Stream Deck(D200X)에서 [herdr](https://herdr.dev) 코딩 에이전트 �
 
 ## 설치
 
+레포는 아무 데나 클론하고, `npm run deploy`로 Plugins 폴더에 **빌드된 복사본**을 설치한다
+(심링크가 아니므로 레포를 옮기거나 지워도 설치본은 그대로).
+
 ```bash
-git clone https://github.com/dylan-jung/herdr-deck \
-  "$HOME/Library/Application Support/Ulanzi/UlanziDeck/Plugins/com.ulanzi.herdrstatus.ulanziPlugin"
-cd "$HOME/Library/Application Support/Ulanzi/UlanziDeck/Plugins/com.ulanzi.herdrstatus.ulanziPlugin"
-npm install        # ws 하나만 설치됨
+git clone https://github.com/dylan-jung/herdr-deck ~/dev/personal/herdr-deck
+cd ~/dev/personal/herdr-deck
+npm install
+npm run deploy     # esbuild 번들 → Plugins/com.ulanzi.herdrstatus.ulanziPlugin 설치 → Ulanzi Studio 재시작
 ```
+
+- 업데이트: `git pull && npm run deploy`
+- `npm run build`는 `.dist/`에 번들만 만든다. 재시작 없이 설치만 하려면 `npm run deploy -- --no-restart`
+- 설치본의 `sessions.json`은 덮어쓰지 않는다 (첫 설치 때만 레포 것을 복사). 세션 설정은 설치본에서 고친다
+- 설치 대상 폴더명·포함 파일·보존 파일은 `package.json`의 `ulanzi` 항목에서 정한다 (`scripts/deploy.mjs`는 플러그인 무관)
 
 Ulanzi Studio를 재시작하면 사이드바 "Herdr" 카테고리에 액션들이 나타난다.
 기본 3페이지 프로필을 쓰려면 `tools/gen_herdr_profile.py`의 `PROFILE_ID`를 자기 프로필 폴더 ID로 바꾼 뒤 실행.
 
-## 세션 설정 — `sessions.json`
+## 세션 설정 — `sessions.json` (설치본: `Plugins/com.ulanzi.herdrstatus.ulanziPlugin/sessions.json`)
 
 ```json
 {
@@ -61,6 +69,7 @@ plugin/app.js           # 전체 로직 (Node, 앱 내장 런타임으로 실행
 plugin/libs/            # Ulanzi plugin-common-node (vendored)
 resources/              # 전 아이콘 (Pillow 스크립트로 생성한 PNG)
 sessions.json           # 세션(호스트) 설정
+scripts/deploy.mjs          # 빌드(esbuild)·설치·재시작
 tools/gen_herdr_profile.py  # 3페이지 프로필 생성기 (앱/사용자 항목은 보존)
 ```
 

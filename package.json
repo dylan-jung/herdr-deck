@@ -2,7 +2,23 @@
   "name": "herdr-status",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "build": "node scripts/deploy.mjs build",
+    "deploy": "node scripts/deploy.mjs deploy"
+  },
+  "ulanzi": {
+    "folder": "com.ulanzi.herdrstatus.ulanziPlugin",
+    "files": [
+      "resources"
+    ],
+    "preserve": [
+      "sessions.json"
+    ]
+  },
   "dependencies": {
     "ws": "8.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
   }
 }
