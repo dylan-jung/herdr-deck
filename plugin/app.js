@@ -365,9 +365,15 @@ async function press(jsn) {
         (wsBySess[b.session] ||= []).push(created); // next press sees it even before the poll returns
         if (count + 1 >= b.index) ws = created;
       }
-      if (ws) {
-        // land on an agent: blocked first, else the nearest one (main -> worktree1 -> worktree2 ...)
-        const famIds = familyOf(ws, b.session).map((w) => w.workspace_id);
+      const famIds = ws ? familyOf(ws, b.session).map((w) => w.workspace_id) : [];
+      // already inside this project (main or one of its worktrees) -> cycle to the next family member
+      let cur = null;
+      if (famIds.length > 1) { try { cur = await focusedWorkspace(b.session); } catch {} }
+      const curIdx = cur ? famIds.indexOf(cur.workspace_id) : -1;
+      if (curIdx >= 0) {
+        await herdr("workspace.focus", { workspace_id: famIds[(curIdx + 1) % famIds.length] }, b.session);
+      } else if (ws) {
+        // entering from elsewhere: land on an agent — blocked first, else the nearest one (main -> worktree1 -> ...)
         let agents = [];
         try { agents = (await herdr("agent.list", {}, b.session)).result?.agents || []; } catch {}
         const inFam = agents.filter((a) => famIds.includes(a.workspace_id));

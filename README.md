@@ -10,7 +10,7 @@ Multi-session: each deck page can control a different herdr (local, or a remote 
 
 | Action | Behavior |
 |---|---|
-| **Space 1–5** | Shows the status of a project (main space) by color — gray none / green idle / yellow working / red blocked / blue done. Worktree spaces are not numbered, but their status rolls up into the parent project. Press to jump: blocked agent → nearest agent (main first, then worktrees) → the space itself. A missing number is created with the current pane's folder as its root |
+| **Space 1–5** | Shows the status of a project (main space) by color — gray none / green idle / yellow working / red blocked / blue done. Worktree spaces are not numbered, but their status rolls up into the parent project. Press to jump: blocked agent → nearest agent (main first, then worktrees) → the space itself. Pressing again while already in that project cycles main → worktree 1 → worktree 2 → … → main. A missing number is created with the current pane's folder as its root |
 | **Split Vertical / Horizontal, Close Pane, Zoom** | `pane.split` / `pane.close` / `pane.zoom` |
 | **Answer Agent** | Jump straight to a blocked (waiting for input) agent; otherwise idle, then working |
 | **New Worktree** | `git worktree` + a new space, then switch to it (branch `agent-MMDD-HHMMSS`). If the current space is not a repo, a repo space is created from the pane's folder and the action retries |
